@@ -164,6 +164,14 @@ if st.button("ارزیابی"):
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
+    # تعریف اتصال جدید به دیتابیس
+    conn = sqlite3.connect('lighting_database.db')
+    all_reports = pd.read_sql_query("SELECT * FROM assessments", conn)  # خط 175
+    if not all_reports.empty:
+        avg_score = all_reports["final_score"].mean()
+        st.write(f"### آمار کلی")
+        st.write(f"میانگین نمرات کل: {round(avg_score, 2)}")
+    conn.close()  # بستن اتصال بعد از استفاده   
     st.write("### نتایج ارزیابی")
     for row in report_data:
         st.write(f"{row['دسته']}: {row['میانگین نمره']}")
@@ -172,6 +180,7 @@ if st.button("ارزیابی"):
         if row["نمره وزنی"]:
             st.write(f"  -> نمره وزنی: {row['نمره وزنی']}")
 
+    conn = sqlite3.connect('lighting_database.db')
     all_reports = pd.read_sql_query("SELECT * FROM assessments", conn)
     if not all_reports.empty:
         avg_score = all_reports["final_score"].mean()
