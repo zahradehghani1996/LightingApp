@@ -119,47 +119,61 @@ for category, questions in categories.items():
 
        # دکمه ارزیابی
 if st.button("ارزیابی"):
-           report_data = []
-           total_score = 0
-           for category, entries in entry_fields.items():
-               scores = [float(entry) for entry in entries]
-               category_score = calculate_category_score(scores)
-               weighted_score = category_score * WEIGHTS[category]
-               total_score += weighted_score
-               report_data.append({
-                   "دسته": category,
-                   "میانگین نمره": round(category_score, 2),
-                   "وزن": WEIGHTS[category],
-                   "نمره وزنی": round(weighted_score, 2)
-               })
+    report_data = []
+    total_score = 0
+    for category, entries in entry_fields.items():
+        scores = [float(entry) for entry in entries]
+        category_score = calculate_category_score(scores)
+        weighted_score = category_score * WEIGHTS[category]
+        total_score += weighted_score
+        report_data.append({
+            "دسته": category,
+            "میانگین نمره": round(category_score, 2),
+            "وزن": WEIGHTS[category],
+            "نمره وزنی": round(weighted_score, 2)
+        })
 
-           final_score = total_score * 10
-           rank = categorize_score(final_score)
+    final_score = total_score * 10
+    rank = categorize_score(final_score)
 
-           report_data.append({"دسته": "نمره کل", "میانگین نمره": round(final_score, 2), "وزن": "", "نمره وزنی": ""})
-           report_data.append({"دسته": "رتبه‌بندی", "میانگین نمره": rank, "وزن": "", "نمره وزنی": ""})
-           if lux_data:
-               report_data.append({
-                   "دسته": "میانگین روشنایی (لوکس)",
-                   "میانگین نمره": round(compliance["mean_lux"], 2),
-                   "وزن": "",
-                   "نمره وزنی": compliance["recommendation"]
-               })
+    report_data.append({"دسته": "نمره کل", "میانگین نمره": round(final_score, 2), "وزن": "", "نمره وزنی": ""})
+    report_data.append({"دسته": "رتبه‌بندی", "میانگین نمره": rank, "وزن": "", "نمره وزنی": ""})
+    if lux_data:
+        report_data.append({
+            "دسته": "میانگین روشنایی (لوکس)",
+            "میانگین نمره": round(compliance["mean_lux"], 2),
+            "وزن": "",
+            "نمره وزنی": compliance["recommendation"]
+        })
 
-           save_to_database(final_score, rank, compliance["mean_lux"] if lux_data else None, compliance["recommendation"])
+    save_to_database(final_score, rank, compliance["mean_lux"] if lux_data else None, compliance["recommendation"])
 
-           st.write("### نتایج ارزیابی")
-           for row in report_data:
-               st.write(f"{row['دسته']}: {row['میانگین نمره']}")
-               if row["وزن"]:
-                   st.write(f"  (وزن: {row['وزن']})")
-               if row["نمره وزنی"]:
-                   st.write(f"  -> نمره وزنی: {row['نمره وزنی']}")
+    import pandas as pd
 
-           conn = sqlite3.connect('lighting_database.db')
-           all_reports = pd.read_sql_query("SELECT * FROM assessments", conn)
-           if not all_reports.empty:
-               avg_score = all_reports["final_score"].mean()
-               st.write(f"### آمار کلی")
-               st.write(f"میانگین نمرات کل: {round(avg_score, 2)}")
-           conn.close()
+    # ساخت دیتافریم از report_data
+    df = pd.DataFrame(report_data)
+
+    # ذخیره به‌صورت اکسل
+    df.to_excel("assessment_results.xlsx", index=False)
+
+    # نمایش لینک دانلود
+    st.download_button(
+        label="دانلود فایل اکسل",
+        data=open("assessment_results.xlsx", "rb").read(),
+        file_name="assessment_results.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    st.write("### نتایج ارزیابی")
+    for row in report_data:
+        st.write(f"{row['دسته']}: {row['میانگین نمره']}")
+        if row["وزن"]:
+            st.write(f"  (وزن: {row['وزن']})")
+        if row["نمره وزنی"]:
+            st.write(f"  -> نمره وزنی: {row['نمره وزنی']}")
+
+    all_reports = pd.read_sql_query("SELECT * FROM assessments", conn)
+    if not all_reports.empty:
+        avg_score = all_reports["final_score"].mean()
+        st.write(f"### آمار کلی")
+        st.write(f"میانگین نمرات کل: {round(avg_score, 2)}")
